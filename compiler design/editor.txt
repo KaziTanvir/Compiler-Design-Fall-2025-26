@@ -1,0 +1,4 @@
+integer a te 5
+float b te 6
+
+dekhao("jogfol :", a+b)

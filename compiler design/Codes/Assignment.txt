@@ -1,0 +1,61 @@
+// interpreter_step3.cpp
+#include <iostream>      // For input and output (cout, cerr)
+#include <fstream>       // For file handling (ifstream)
+#include <sstream>       // For string stream operations
+#include <string>        // For using std::string
+#include <unordered_map> // For storing variables and their values
+#include <regex>         // For matching patterns using regular expressions
+
+int main() {
+    // Open the text file named "editor.txt"
+    std::ifstream file("editor.txt");
+
+    // Check if the file opened successfully
+    if (!file.is_open()) {
+        std::cerr << "Error: Could not open editor.txt\n";
+        return 1;  // Exit the program with error code 1
+    }
+
+    // Create a map (dictionary) to store variable names and their integer values
+    std::unordered_map<std::string, int> variables;
+    std::string line;  // To store each line read from the file
+
+    // Read the file line by line
+    while (std::getline(file, line)) {
+        // Skip empty lines
+        if (line.empty()) continue;
+
+        // Define regular expressions for assignment and printing
+        // Example of assignment: a te 5
+        std::regex assign_regex(R"(^\s*([a-zA-Z_]\w*)\s+te\s+(-?\d+)\s*$)");
+        // Example of print command: dekhao(a)
+        std::regex dekhao_regex(R"(^\s*dekhao\(\s*([a-zA-Z_]\w*)\s*\)\s*$)");
+
+        std::smatch match;  // To store the result of regex matching
+
+        // Case 1: Assignment operation
+        if (std::regex_match(line, match, assign_regex)) {
+            std::string var = match[1];    // Variable name (e.g., "a")
+            int value = std::stoi(match[2]); // Convert value (string → int)
+            variables[var] = value;         // Store in the map
+        }
+        // Case 2: Print command using dekhao()
+        else if (std::regex_match(line, match, dekhao_regex)) {
+            std::string var = match[1];  // Extract variable name
+            // Check if the variable was previously defined
+            if (variables.find(var) != variables.end()) {
+                std::cout << variables[var] << std::endl;  // Print its value
+            } else {
+                std::cerr << "Error: Variable '" << var << "' not defined.\n";
+            }
+        }
+        // Case 3: Invalid syntax
+        else {
+            std::cerr << "Syntax Error: " << line << std::endl;
+        }
+    }
+
+    // Close the file after processing
+    file.close();
+    return 0;  // End of program
+}

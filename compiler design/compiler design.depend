@@ -1,0 +1,12 @@
+# depslib dependency file v1.0
+1761405840 source:f:\aiub\ip questions\compiler design\main.cpp
+	<iostream>
+	<fstream>
+	<string>
+	<unordered_map>
+	<regex>
+	<cctype>
+	<cmath>
+	<iomanip>
+	<stdexcept>
+

@@ -1,0 +1,24 @@
+#include <iostream>   // For input and output (cout, cerr)
+#include <fstream>    // For file handling (ofstream)
+using namespace std;
+
+int main() {
+    // Create or overwrite a text file named "editor.txt"
+    // ofstream is used to write data to files
+    ofstream file("editor.txt");
+
+    // Check if the file is successfully created/opened
+    if (file.is_open()) {
+        // If yes, show a success message
+        cout << "Empty text file created successfully!" << endl;
+
+        // Always close the file after finishing
+        file.close();
+    } else {
+        // If file creation failed, show an error message
+        cerr << "Error: Unable to create file." << endl;
+    }
+
+    // End of the program
+    return 0;
+}

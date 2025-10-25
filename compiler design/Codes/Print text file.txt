@@ -1,0 +1,37 @@
+#include <iostream>   // For input and output (cout, cin, cerr)
+#include <fstream>    // For file handling (ifstream)
+#include <string>     // For using the string data type
+using namespace std;
+
+int main() {
+    string filename;  // To store the file name entered by the user
+
+    // Ask the user to enter the name of the file
+    cout << "Enter the file name: ";
+    cin >> filename;
+
+    // Open the given file for reading
+    ifstream file(filename);
+
+    // Check if the file failed to open
+    if (!file) {
+        cerr << "Error: Could not open the file." << endl;
+        return 1;  // Exit the program with an error code
+    }
+
+    string line;  // To store each line from the file
+
+    // Print a header before showing file contents
+    cout << "\n--- File Content ---\n";
+
+    // Read the file line by line until the end of file (EOF)
+    while (getline(file, line)) {
+        cout << line << endl;  // Display each line on the screen
+    }
+
+    // Close the file after reading
+    file.close();
+
+    // End of program
+    return 0;
+}

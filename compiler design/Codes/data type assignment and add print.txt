@@ -1,0 +1,202 @@
+// interpreter_step5.cpp
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <unordered_map>
+#include <regex>
+#include <cctype>
+#include <cmath>
+#include <iomanip>
+#include <stdexcept>
+
+// Simple type system for variables in our mini language
+enum class Type { INT, FLOAT };
+
+// Runtime environment to store variable types and values
+struct Env {
+    std::unordered_map<std::string, Type> types;   // variable -> declared type
+    std::unordered_map<std::string, double> values; // variable -> current value (stored as double)
+    bool hasVar(const std::string& n) const { return values.find(n) != values.end(); }
+};
+
+// A tiny expression parser (recursive descent) for +, -, *, /, parentheses, numbers, and variables
+struct Parser {
+    std::string s;      // the expression text
+    size_t i = 0;       // current parse position
+    Env* env;           // pointer to runtime environment (to resolve variables)
+
+    Parser(const std::string& str, Env* e) : s(str), env(e) {}
+
+    // Skip any whitespace
+    void skip() { while (i < s.size() && isspace((unsigned char)s[i])) ++i; }
+
+    // If the next non-space character matches 'c', consume it and return true
+    bool match(char c) {
+        skip();
+        if (i < s.size() && s[i] == c) { ++i; return true; }
+        return false;
+    }
+
+    // Parse a number with optional sign and decimal point
+    double parse_number() {
+        skip();
+        size_t st = i; bool dot = false;
+        if (i < s.size() && (s[i] == '+' || s[i] == '-')) ++i;
+        while (i < s.size() && (isdigit((unsigned char)s[i]) || s[i] == '.')) {
+            if (s[i] == '.') { if (dot) break; dot = true; }
+            ++i;
+        }
+        // std::stod throws on invalid; caller catches at top level
+        return std::stod(s.substr(st, i - st));
+    }
+
+    // Parse an identifier: [A-Za-z_][A-Za-z0-9_]*
+    std::string parse_identifier() {
+        skip();
+        if (i >= s.size() || !(isalpha((unsigned char)s[i]) || s[i] == '_'))
+            throw std::runtime_error("Expected identifier");
+        size_t st = i++;
+        while (i < s.size() && (isalnum((unsigned char)s[i]) || s[i] == '_')) ++i;
+        return s.substr(st, i - st);
+    }
+
+    // factor := NUMBER | VARIABLE | '(' expr ')'
+    double factor() {
+        skip();
+        if (match('(')) {
+            double v = expr();
+            if (!match(')')) throw std::runtime_error("Missing )");
+            return v;
+        }
+        if (i < s.size() && (isdigit((unsigned char)s[i]) || s[i] == '+' || s[i] == '-'))
+            return parse_number();
+
+        // If not number/paren, expect a variable
+        std::string id = parse_identifier();
+        if (!env->hasVar(id)) throw std::runtime_error("Undefined variable: " + id);
+        return env->values[id];
+    }
+
+    // term := factor (('*' factor) | ('/' factor))*
+    double term() {
+        double v = factor();
+        while (true) {
+            skip();
+            if (match('*')) {
+                v *= factor();
+            } else if (match('/')) {
+                double r = factor();
+                if (fabs(r) < 1e-15) throw std::runtime_error("Division by zero");
+                v /= r;
+            } else break;
+        }
+        return v;
+    }
+
+    // expr := term (('+' term) | ('-' term))*
+    double expr() {
+        double v = term();
+        while (true) {
+            skip();
+            if (match('+')) {
+                v += term();
+            } else if (match('-')) {
+                v -= term();
+            } else break;
+        }
+        return v;
+    }
+};
+
+// Helper: decide if a double is “effectively” an integer (for pretty printing)
+static inline bool is_int_like(double x) { return fabs(x - round(x)) < 1e-9; }
+
+int main() {
+    // Open the program source (our custom language) from editor.txt
+    std::ifstream f("editor.txt");
+    if (!f.is_open()) { std::cerr << "Cannot open editor.txt\n"; return 1; }
+
+    Env env;                 // runtime environment to store variables
+    std::string line;        // holds each line from the source file
+
+    // Declarations like:
+    //   integer a te 5
+    //   float b te 6.25
+    std::regex decl(R"(^\s*(integer|float)\s+([A-Za-z_]\w*)\s+te\s+(-?\d+(?:\.\d+)?)\s*$)");
+
+    // Print command with one or more comma-separated arguments:
+    //   dekhao("sum:", a+b)
+    //   dekhao(a, b, "=", a+b)
+    std::regex print_re(R"(^\s*dekhao\(\s*(.+)\s*\)\s*$)");
+
+    while (std::getline(f, line)) {
+        if (line.empty()) continue;      // ignore blank lines
+        std::smatch m;
+
+        // 1) Handle variable declaration/initialization
+        if (std::regex_match(line, m, decl)) {
+            std::string type = m[1];          // "integer" or "float"
+            std::string var  = m[2];          // variable name
+            double val = std::stod(m[3]);     // initial value (as double)
+
+            // Store declared type, and normalize value:
+            // - integers are rounded to nearest integer
+            // - floats are stored as-is
+            if (type == "integer") { env.types[var] = Type::INT;   env.values[var] = round(val); }
+            else                    { env.types[var] = Type::FLOAT; env.values[var] = val; }
+            continue;
+        }
+
+        // 2) Handle printing with dekhao(...)
+        if (std::regex_match(line, m, print_re)) {
+            std::string args = m[1];
+
+            // Split arguments by commas, but ignore commas inside quotes
+            bool in_str = false;
+            std::string token;
+
+            for (size_t i = 0; i <= args.size(); ++i) {
+                // End of an argument: either end of string or a comma outside quotes
+                if (i == args.size() || (!in_str && args[i] == ',')) {
+                    std::string part = token; token.clear();
+
+                    // Trim leading/trailing spaces
+                    part = std::regex_replace(part, std::regex(R"(^\s+|\s+$)"), "");
+
+                    if (!part.empty()) {
+                        // If the part is a string literal "..."
+                        if (part.size() >= 2 && part.front() == '"' && part.back() == '"') {
+                            std::string text = part.substr(1, part.size() - 2);
+                            std::cout << text;  // print string as-is
+                        } else {
+                            // Otherwise, treat as an expression: parse and evaluate
+                            try {
+                                Parser p(part, &env);
+                                double val = p.expr();
+
+                                // Pretty-print: integers without decimal, floats with precision
+                                if (is_int_like(val)) std::cout << (long long)llround(val);
+                                else                  std::cout << std::setprecision(12) << val;
+                            } catch (const std::exception& e) {
+                                std::cerr << "\nError: " << e.what() << "\n";
+                            }
+                        }
+                    }
+
+                    // Add a space between printed arguments (but not after the last)
+                    if (i < args.size()) std::cout << " ";
+                } else {
+                    // Track when we're inside a quoted string to avoid splitting on commas there
+                    if (args[i] == '"') in_str = !in_str;
+                    token.push_back(args[i]);
+                }
+            }
+
+            std::cout << "\n";  // newline after dekhao(...)
+            continue;
+        }
+
+        // 3) Anything else is a syntax error in this step
+        std::cerr << "Syntax Error: " << line << "\n";
+    }
+}

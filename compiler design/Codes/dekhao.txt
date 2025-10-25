@@ -1,0 +1,45 @@
+// interpreter_step2.cpp
+#include <iostream>   // For input and output (cout, cerr)
+#include <fstream>    // For file handling (ifstream)
+#include <string>     // For using std::string
+#include <regex>      // For pattern matching using regular expressions
+
+int main() {
+    // Try to open the file named "editor.txt"
+    std::ifstream file("editor.txt");
+
+    // If the file cannot be opened, show an error and stop the program
+    if (!file.is_open()) {
+        std::cerr << "Error: Could not open editor.txt\n";
+        return 1;  // Return a non-zero value to indicate failure
+    }
+
+    std::string line;  // Variable to store each line read from the file
+
+    // Read the file line by line
+    while (std::getline(file, line)) {
+        // Define a regular expression to match lines like:
+        // dekhao("Hello")
+        std::regex dekhao_regex(R"(dekhao\(\"(.*)\"\))");
+        std::smatch match;  // To store the result of the regex match
+
+        // Check if the current line matches the "dekhao" pattern
+        if (std::regex_match(line, match, dekhao_regex)) {
+            // match[1] contains the text inside the quotes
+            std::string message = match[1];
+            
+            // Print the extracted message to the console
+            std::cout << message << std::endl;
+        } 
+        else {
+            // If the line does not match the pattern, show an error message
+            std::cerr << "Syntax Error or Unknown Command: " << line << std::endl;
+        }
+    }
+
+    // Close the file after reading
+    file.close();
+
+    // End of program
+    return 0;
+}
