@@ -1,0 +1,29 @@
+#include <iostream>
+#include <fstream>
+#include <cctype> // for isspace()
+
+using namespace std;
+
+int main() {
+    string inputFile = "input.txt";  // your text file
+    ifstream fin(inputFile);
+
+    if (!fin.is_open()) {
+        cerr << "Error: Cannot open file '" << inputFile << "'!" << endl;
+        return 1;
+    }
+
+    char ch;
+    cout << "Cleaned text (without whitespaces):\n\n";
+    
+    while (fin.get(ch)) {
+        if (!isspace(static_cast<unsigned char>(ch))) {
+            cout << ch;
+        }
+    }
+
+    fin.close();
+    cout << "\n\n--- End of Output ---" << endl;
+
+    return 0;
+}

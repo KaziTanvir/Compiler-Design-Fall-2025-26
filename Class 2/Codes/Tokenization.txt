@@ -1,0 +1,83 @@
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <cctype>
+using namespace std;
+
+// Function to check if a string is an operator
+bool isOperator(const string &token) {
+    return (token == "te" || token == "+" || token == "-" ||
+            token == "*" || token == "/" || token == "(" || token == ")");
+}
+
+// Function to tokenize a line
+vector<string> tokenize(const string &line) {
+    vector<string> tokens;
+    string token;
+
+    for (size_t i = 0; i < line.size(); ++i) {
+        char ch = line[i];
+
+        if (isspace(ch)) {
+            if (!token.empty()) {
+                tokens.push_back(token);
+                token.clear();
+            }
+        }
+        else if (isalpha(ch)) {  // part of a word
+            token += ch;
+        }
+        else if (isdigit(ch)) {  // part of a number
+            token += ch;
+        }
+        else if (ch == '(' || ch == ')' || ch == '+' || ch == '-') {
+            if (!token.empty()) {
+                tokens.push_back(token);
+                token.clear();
+            }
+            tokens.push_back(string(1, ch)); // add operator or parenthesis
+        }
+        else {
+            // treat other symbols as separate tokens
+            if (!token.empty()) {
+                tokens.push_back(token);
+                token.clear();
+            }
+        }
+    }
+
+    if (!token.empty()) {
+        tokens.push_back(token);
+    }
+
+    return tokens;
+}
+
+int main() {
+    ifstream fin("input.txt");
+    if (!fin.is_open()) {
+        cerr << "Error: Cannot open input.txt" << endl;
+        return 1;
+    }
+
+    string line;
+    vector<string> allTokens;
+
+    cout << "Tokenizing file content...\n\n";
+
+    while (getline(fin, line)) {
+        vector<string> tokens = tokenize(line);
+        allTokens.insert(allTokens.end(), tokens.begin(), tokens.end());
+    }
+
+    fin.close();
+
+    cout << "Tokens found:\n";
+    for (const auto &t : allTokens) {
+        cout << "[" << t << "] ";
+    }
+
+    cout << "\n\n--- End of Tokens ---" << endl;
+    return 0;
+}
