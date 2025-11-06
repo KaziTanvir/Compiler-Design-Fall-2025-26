@@ -1,0 +1,24 @@
+digraph AnnotatedAST {
+  node [shape=box];
+  n0 [label="Program"];
+  n1 [label="Decl\n(integer)\n:type=int\nconst=true(5)"];
+  n2 [label="name=a"];
+  n3 [label="value=5"];
+  n1 -> n2;
+  n1 -> n3;
+  n0 -> n1 [label="stmt1"];
+  n4 [label="Decl\n(integer)\n:type=int\nconst=true(6)"];
+  n5 [label="name=b"];
+  n6 [label="value=6"];
+  n4 -> n5;
+  n4 -> n6;
+  n0 -> n4 [label="stmt2"];
+  n7 [label="Print\n(dekhao)\nexpr.type=int\nexpr.const=11"];
+  n8 [label="BinaryOp\n+\n:type=int\nconst=11"];
+  n9 [label="Ident\na\n:type=int\nbinds→a\nconst=5"];
+  n10 [label="Ident\nb\n:type=int\nbinds→b\nconst=6"];
+  n8 -> n9 [label="left"];
+  n8 -> n10 [label="right"];
+  n7 -> n8 [label="expr"];
+  n0 -> n7 [label="stmt3"];
+}

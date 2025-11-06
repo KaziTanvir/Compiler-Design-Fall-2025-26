@@ -1,0 +1,4 @@
+integer a te 5
+integer b te 6
+
+dekhao(a+b)

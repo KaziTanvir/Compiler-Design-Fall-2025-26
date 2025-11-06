@@ -1,0 +1,64 @@
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <regex>
+using namespace std;
+
+// Function to trim whitespace
+string trim(const string &s) {
+    string result = s;
+    result.erase(0, result.find_first_not_of(" \t\n\r"));
+    result.erase(result.find_last_not_of(" \t\n\r") + 1);
+    return result;
+}
+
+int main() {
+    ifstream file("input.txt");
+    if (!file) {
+        cerr << "Error: input.txt not found!" << endl;
+        return 1;
+    }
+
+    string line;
+    vector<string> tokens;
+    cout << "=== Lexical Analysis ===\n";
+
+    // Tokenize each line
+    while (getline(file, line)) {
+        if (line.empty()) continue;
+        stringstream ss(line);
+        string token;
+        while (ss >> token) {
+            tokens.push_back(token);
+            cout << "Token: " << token << endl;
+        }
+    }
+
+    cout << "\n=== Syntax Analysis ===\n";
+    file.clear();
+    file.seekg(0, ios::beg);
+
+    int lineNo = 1;
+    regex declPattern("^integer\\s+[a-zA-Z_]\\w*\\s+te\\s+[0-9]+$");
+    regex printPattern("^dekhao\\s*\\(.*\\)$");
+
+    while (getline(file, line)) {
+        line = trim(line);
+        if (line.empty()) continue;
+
+        cout << "Line " << lineNo++ << ": " << line << endl;
+        if (regex_match(line, declPattern)) {
+            cout << "Valid Declaration Statement\n";
+        }
+        else if (regex_match(line, printPattern)) {
+            cout << "Valid Print Statement\n";
+        }
+        else {
+            cout << "Syntax Error Detected\n";
+        }
+        cout << endl;
+    }
+
+    return 0;
+}
